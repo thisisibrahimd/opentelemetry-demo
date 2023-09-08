@@ -7,7 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.opentelemetry.io/otel/metric"
 	semconv "go.opentelemetry.io/otel/semconv/v1.19.0"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -48,9 +50,19 @@ import (
 //go:generate protoc --go_out=./ --go-grpc_out=./ --proto_path=../../pb ../../pb/demo.proto
 
 var log *logrus.Logger
+var meter metric.Meter
 var tracer trace.Tracer
 var resource *sdkresource.Resource
 var initResourcesOnce sync.Once
+
+// Metrics
+var orderTotal metric.Int64Counter
+var currencyConversionTotal metric.Int64Counter
+
+//goland:noinspection GoUnusedGlobalVariable
+var currencyCompletenessGauge metric.Float64ObservableGauge
+var currencyFreshnessMilliseconds metric.Float64Histogram
+var orderCompletenessCounter metric.Int64Counter
 
 func init() {
 	log = logrus.New()
@@ -151,6 +163,7 @@ func main() {
 	}
 
 	tracer = tp.Tracer("checkoutservice")
+	meter = mp.Meter("checkoutservice")
 
 	svc := new(checkoutService)
 	mustMapEnv(&svc.shippingSvcAddr, "SHIPPING_SERVICE_ADDR")
@@ -169,6 +182,55 @@ func main() {
 	}
 
 	log.Infof("service config: %+v", svc)
+
+	// Create metrics
+	metricPrefix := "app_checkout"
+	orderTotal, err = meter.Int64Counter(metricPrefix + "_ping")
+	if err != nil {
+		log.Fatal(err)
+	}
+	currencyConversionTotal, err = meter.Int64Counter(metricPrefix + "_currency_convert_counter")
+	if err != nil {
+		log.Fatal(err)
+	}
+	currencyFreshnessMilliseconds, err = meter.Float64Histogram(metricPrefix + "_currency_freshness_milliseconds")
+	if err != nil {
+		log.Fatal(err)
+	}
+	currencyCompletenessGauge, err = meter.Float64ObservableGauge(metricPrefix+"_currency_completeness_gauge",
+		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
+			conn, err := createClient(ctx, svc.currencySvcAddr)
+			if err != nil {
+				return fmt.Errorf("could not connect currency service: %+v", err)
+			}
+			defer func(conn *grpc.ClientConn) {
+				err := conn.Close()
+				if err != nil {
+					log.Fatal(err)
+				}
+			}(conn)
+
+			// REAL Code Implementation
+			//result, err := pb.NewCurrencyServiceClient(conn).GetSupportedCurrencies(ctx, &pb.Empty{})
+			//if err != nil {
+			//	return fmt.Errorf("failed to get currencies: %+v", err)
+			//}
+			//numOfExpectedCurrencyCodes := 34 // This is static but this number should be pulled from a reliable source
+			// Or you can have a formula that goes (number of currency in the table with values) / (number of currency with/out values).
+			// The former is preferred.
+			//numOfCurrencyCodes := len(result.GetCurrencyCodes())
+			//observer.Observe(float64(float64(numOfCurrencyCodes) / float64(numOfExpectedCurrencyCodes)))
+
+			// Random Implementation
+			observer.Observe(rand.Float64()/10.0 + 0.9)
+
+			return nil
+		}),
+	)
+	orderCompletenessCounter, err = meter.Int64Counter(metricPrefix + "_order_complete")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
@@ -203,6 +265,7 @@ func (cs *checkoutService) Watch(req *healthpb.HealthCheckRequest, ws healthpb.H
 }
 
 func (cs *checkoutService) PlaceOrder(ctx context.Context, req *pb.PlaceOrderRequest) (*pb.PlaceOrderResponse, error) {
+	orderTotal.Add(ctx, 1)
 	span := trace.SpanFromContext(ctx)
 	span.SetAttributes(
 		attribute.String("app.user.id", req.UserId),
@@ -414,6 +477,10 @@ func (cs *checkoutService) prepOrderItems(ctx context.Context, items []*pb.CartI
 }
 
 func (cs *checkoutService) convertCurrency(ctx context.Context, from *pb.Money, toCurrency string) (*pb.Money, error) {
+	currencyConversionTotal.Add(ctx, 1, metric.WithAttributes(attribute.KeyValue{Key: "from_code", Value: attribute.StringValue(from.CurrencyCode)}, attribute.KeyValue{Key: "to_code", Value: attribute.StringValue(toCurrency)}))
+	time_now_minus_updated_date := rand.Float64() * 360 * 1000 // Should get currency updated date from dependent service in the form of metadata.
+	currencyFreshnessMilliseconds.Record(ctx, time_now_minus_updated_date, metric.WithAttributes(attribute.KeyValue{Key: "code", Value: attribute.StringValue(from.CurrencyCode)}))
+	currencyFreshnessMilliseconds.Record(ctx, time_now_minus_updated_date, metric.WithAttributes(attribute.KeyValue{Key: "code", Value: attribute.StringValue(toCurrency)}))
 	conn, err := createClient(ctx, cs.currencySvcAddr)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect currency service: %+v", err)
@@ -467,6 +534,16 @@ func (cs *checkoutService) sendOrderConfirmation(ctx context.Context, email stri
 }
 
 func (cs *checkoutService) shipOrder(ctx context.Context, address *pb.Address, items []*pb.CartItem) (string, error) {
+	completeAttr := metric.WithAttributes(attribute.KeyValue{Key: "status", Value: attribute.StringValue("complete")})
+	incompleteAttr := metric.WithAttributes(attribute.KeyValue{Key: "status", Value: attribute.StringValue("incomplete")})
+	if len(address.StreetAddress)+len(address.City)+len(address.Country)+len(address.State)+len(address.ZipCode) > 5 { // Simple for demo purposes. Should have extensive validation
+		if rand.Intn(100) < 95 {
+			orderCompletenessCounter.Add(ctx, 1, completeAttr)
+		} else {
+			orderCompletenessCounter.Add(ctx, 1, incompleteAttr)
+		}
+	}
+
 	conn, err := createClient(ctx, cs.shippingSvcAddr)
 	if err != nil {
 		return "", fmt.Errorf("failed to connect email service: %+v", err)
