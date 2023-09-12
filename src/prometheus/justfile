@@ -1,0 +1,2 @@
+gen-slos:
+	sloth generate -i ./slxs -o ./rules

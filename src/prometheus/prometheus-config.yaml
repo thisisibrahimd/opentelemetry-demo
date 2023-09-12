@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
+rule_files:
+- /etc/prometheus/rules/*
 global:
   evaluation_interval: 30s
   scrape_interval: 5s

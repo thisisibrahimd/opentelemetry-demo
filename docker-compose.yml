@@ -681,6 +681,7 @@ services:
       - --enable-feature=exemplar-storage
     volumes:
       - ./src/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus-config.yaml
+      - ./src/prometheus/rules:/etc/prometheus/rules
     deploy:
       resources:
         limits:

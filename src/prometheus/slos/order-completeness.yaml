@@ -1,0 +1,14 @@
+version: "prometheus/v1"
+service: "order"
+slos:
+  - name: "order-completeness" # Format: <object>-<sli-type>
+    objective: 99
+    sli:
+      events:
+        error_query: sum(rate(app_checkout_order_complete{status="incomplete"}[{{.window}}]))
+        total_query: sum(rate(app_checkout_order_complete{status="complete"}[{{.window}}]))
+    alerting:
+      page_alert:
+        disable: true
+      ticket_alert:
+        disable: true

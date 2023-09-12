@@ -12,3 +12,12 @@ providers:
     editable: true
     options:
       path: /etc/grafana/provisioning/dashboards/general
+  - name: 'Service Level Objectives'
+    orgId: 1
+    folder: 'SLXs'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/slxs
+

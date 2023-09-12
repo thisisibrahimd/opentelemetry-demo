@@ -1,0 +1,14 @@
+version: "prometheus/v1"
+service: "currency"
+slos:
+  - name: "currency-freshness" # Format: <object>-<sli-type>
+    objective: 99
+    sli:
+      events:
+        error_query: sum(rate(app_checkout_currency_freshness_milliseconds_bucket{}[{{.window}}]))
+        total_query: sum(rate(app_checkout_currency_freshness_milliseconds_count{}[{{.window}}]))
+    alerting:
+      page_alert:
+        disable: true
+      ticket_alert:
+        disable: true
