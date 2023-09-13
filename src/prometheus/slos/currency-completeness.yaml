@@ -6,7 +6,7 @@ slos:
     sli:
       events:
         error_query: sum(rate(app_checkout_currency_completeness_gauge{status="incomplete"}[{{.window}}]))
-        total_query: sum(rate(app_checkout_currency_completeness_gauge{status="complete"}[{{.window}}]))
+        total_query: sum(rate(app_checkout_currency_completeness_gauge{}[{{.window}}]))
     alerting:
       page_alert:
         disable: true

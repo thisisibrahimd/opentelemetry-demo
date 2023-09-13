@@ -5,7 +5,7 @@ slos:
     objective: 99
     sli:
       events:
-        error_query: sum(rate(app_checkout_currency_freshness_milliseconds_bucket{}[{{.window}}]))
+        error_query: sum(rate(app_checkout_currency_freshness_milliseconds_bucket{le="60000"}[{{.window}}]))
         total_query: sum(rate(app_checkout_currency_freshness_milliseconds_count{}[{{.window}}]))
     alerting:
       page_alert:
