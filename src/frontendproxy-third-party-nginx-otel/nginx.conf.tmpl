@@ -1,0 +1,40 @@
+load_module /etc/nginx/modules/otel_ngx_module.so;
+
+user  nginx;
+worker_processes  auto;
+
+error_log  /var/log/nginx/error.log notice;
+pid        /var/run/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    opentelemetry on;
+    opentelemetry_config /conf/otel-nginx.toml;
+    opentelemetry_propagate;
+    opentelemetry_attribute flowid $request_id;
+
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"'
+                      'flow-id=$request_id'
+                      'trace-id=opentelemetry_context_traceparent opentelemetry_span_id';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    include /etc/nginx/conf.d/*.conf;
+}

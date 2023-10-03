@@ -1,0 +1,47 @@
+load_module /etc/nginx/modules/ngx_otel_module.so;
+
+user  nginx;
+worker_processes  auto;
+
+error_log  /var/log/nginx/error.log notice;
+pid        /var/run/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+
+    otel_exporter {
+        endpoint {{ getenv "OTEL_COLLECTOR_HOST" }}:{{ getenv "OTEL_COLLECTOR_PORT_GRPC" }};
+#         interval 5;
+#         batch_size 512;
+#         batch_count 4;
+    }
+    otel_service_name frontendproxy-first-party-nginx-otel;
+    otel_trace on;
+    otel_trace_context propagate;
+    otel_span_attr flowid $request_id;
+
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"'
+                      'flow-id=$request_id'
+                      'trace-id=$otel_trace_id $otel_span_id $otel_parent_id $otel_parent_sampled';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    include /etc/nginx/conf.d/*.conf;
+}

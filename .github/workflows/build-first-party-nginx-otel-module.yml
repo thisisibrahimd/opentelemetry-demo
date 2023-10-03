@@ -1,0 +1,109 @@
+name: build-first-party-nginx-otel-module
+run-name: ${{ github.actor }} is triggering pipeline
+on: [workflow_dispatch]
+env:
+  NGINX_VERSION: v1.24
+  GRPC_CPP_SHA: a3f10052090539cd3e19aa8e04f3bf8eceae2964
+  GRPC_CPP_VERSION: v1.52.0
+  OTEL_CPP_SHA: d56a5c702fc2154ef82400df4801cd511ffb63ea
+  OTEL_CPP_VERSION: v1.8.2
+
+jobs:
+  build-module:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          repository: nginxinc/nginx-otel
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+          build-essential \
+            ca-certificates \
+            cmake \
+            curl \
+            git \
+            gnupg1 \
+            libc-ares-dev \
+            libre2-dev \
+            libpcre3-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libsystemd-dev \
+            pkg-config \
+            zlib1g-dev
+      - name: Checkout nginx
+        run: |
+          cd /opt
+          curl -s http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -o nginx-${NGINX_VERSION}.tar.gz \
+          && tar -xvf nginx-${NGINX_VERSION}.tar.gz \
+          && cd nginx-$NGINX_VERSION \
+      - name: Configure nginx
+        working-directory: /opt/nginx-$NGINX_VERSION
+        run: ./configure --with-compat
+      - name: Create build directory
+        run: mkdir /opt/nginx-$NGINX_VERSION/build
+      - name: Build module
+        working-directory: /opt/nginx-$NGINX_VERSION/build
+        run: |
+          cmake -DNGX_OTEL_NGINX_BUILD_DIR=${PWD}/../nginx-$NGINX_VERSION/objs ..
+          make -j 4
+          strip ngx_otel_module.so
+      - name: Archive module
+        uses: actions/upload-artifact@v3
+        with:
+          name: nginx-otel-module
+          path: build/ngx_otel_module.so
+      - name: Archive protoc and opentelemetry-proto
+        uses: actions/upload-artifact@v3
+        with:
+          name: protoc-opentelemetry-proto
+          path: |
+            /opt/nginx-$NGINX_VERSION/build/_deps/grpc-build/third_party/protobuf/protoc
+            /opt/nginx-$NGINX_VERSION/build/_deps/otelcpp-src/third_party/opentelemetry-proto
+#  test-module:
+#    needs: build-module
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout repository
+#        uses: actions/checkout@v3
+#      - name: Download module
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: nginx-otel-module
+#          path: build
+#      - name: Download protoc and opentelemetry-proto
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: protoc-opentelemetry-proto
+#          path: build/_deps
+#      - name: List files
+#        run: ls -laR .
+#      - name: Fix protoc file permissions
+#        run: chmod +x build/_deps/grpc-build/third_party/protobuf/protoc
+#      - name: Install perl modules
+#        run: sudo cpan IO::Socket::SSL Crypt::Misc
+#      - name: Download otelcol
+#        run: |
+#          curl -LO https://github.com/\
+#          open-telemetry/opentelemetry-collector-releases/releases/download/\
+#          v0.76.1/otelcol_0.76.1_linux_amd64.tar.gz
+#          tar -xzf otelcol_0.76.1_linux_amd64.tar.gz
+#      - name: Checkout nginx and nginx-test
+#        run: |
+#          hg clone http://hg.nginx.org/nginx/
+#          hg clone http://hg.nginx.org/nginx-tests/
+#      - name: Build nginx
+#        working-directory: nginx
+#        run: |
+#          auto/configure --with-compat --with-debug --with-http_ssl_module \
+#          --with-http_v2_module --with-http_v3_module
+#          make -j 4
+#      - name: Run tests
+#        working-directory: tests
+#        run: |
+#          PERL5LIB=../nginx-tests/lib TEST_NGINX_UNSAFE=1 \
+#          TEST_NGINX_VERBOSE=1 TEST_NGINX_GLOBALS="load_module \
+#          ${PWD}/../build/ngx_otel_module.so;" prove -v .

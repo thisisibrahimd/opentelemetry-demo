@@ -1,0 +1,41 @@
+upstream featureflag {
+    server ${FEATURE_FLAG_SERVICE_HOST}:${FEATURE_FLAG_SERVICE_PORT};
+}
+
+upstream loadgen {
+    server ${LOCUST_WEB_HOST}:${LOCUST_WEB_PORT};
+}
+
+upstream jaeger {
+    server ${JAEGER_SERVICE_HOST}:${JAEGER_SERVICE_PORT};
+}
+
+upstream grafana {
+    server ${GRAFANA_SERVICE_HOST}:${GRAFANA_SERVICE_PORT};
+}
+
+upstream frontend {
+    server ${FRONTEND_HOST}:${FRONTEND_PORT};
+}
+
+server {
+    listen ${THIRD_PARTY_NGINX_OTEL_PORT};
+
+    location /feature {
+        proxy_pass http://featureflag;
+#         rewrite
+    }
+    location /loadgen {
+        proxy_pass http://loadgen;
+#         rewrite
+    }
+    location /jaeger {
+        proxy_pass http://jaeger;
+    }
+    location /grafana {
+        proxy_pass http://grafana;
+    }
+    location / {
+        proxy_pass http://frontend;
+    }
+}
