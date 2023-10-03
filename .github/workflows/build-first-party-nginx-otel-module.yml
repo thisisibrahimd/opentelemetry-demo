@@ -18,12 +18,13 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: nginxinc/nginx-otel
-          branch: $NGINX_VERSION
+#          ref: $NGINX_VERSION
           path: /nginx-otel
       - name: Checkout nginx/nginx repository
         uses: actions/checkout@v3
         with:
           repository: nginx/nginx
+          ref: $NGINX_VERSION
           path: /nginx
       - name: Install dependencies
         run: |
