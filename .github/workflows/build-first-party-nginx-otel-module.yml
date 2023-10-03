@@ -46,7 +46,7 @@ jobs:
             pkg-config \
             zlib1g-dev
       - name: Configure nginx
-        working-directory: /ginx
+        working-directory: /nginx
         run: ./configure --with-compat
       - name: Create build directory
         run: mkdir -p nginx-otel/build
