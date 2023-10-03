@@ -767,7 +767,7 @@ services:
       - --storage.tsdb.path=/prometheus
       - --web.enable-lifecycle
       - --web.route-prefix=/
-      - --enable-feature=exemplar-storage # HAHA NOICE
+      - --enable-feature=exemplar-storage
     volumes:
       - ./src/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus-config.yaml
     deploy:
