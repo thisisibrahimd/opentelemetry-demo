@@ -19,13 +19,13 @@ jobs:
         with:
           repository: nginxinc/nginx-otel
 #          ref: $NGINX_VERSION
-          path: /nginx-otel
+          path: nginx-otel
       - name: Checkout nginx/nginx repository
         uses: actions/checkout@v3
         with:
           repository: nginx/nginx
           ref: $NGINX_VERSION
-          path: /nginx
+          path: nginx
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -45,28 +45,28 @@ jobs:
             pkg-config \
             zlib1g-dev
       - name: Configure nginx
-        working-directory: /nginx
+        working-directory: /ginx
         run: ./configure --with-compat
       - name: Create build directory
-        run: mkdir /nginx-otel/build
+        run: mkdir -p nginx-otel/build
       - name: Build module
-        working-directory: /nginx-otel/build
+        working-directory: nginx-otel/build
         run: |
-          cmake -DNGX_OTEL_NGINX_BUILD_DIR=/nginx/objs ..
+          cmake -DNGX_OTEL_NGINX_BUILD_DIR=nginx/objs ..
           make -j 4
           strip ngx_otel_module.so
       - name: Archive module
         uses: actions/upload-artifact@v3
         with:
           name: nginx-otel-module
-          path: /nginx/build/ngx_otel_module.so
+          path: nginx/build/ngx_otel_module.so
       - name: Archive protoc and opentelemetry-proto
         uses: actions/upload-artifact@v3
         with:
           name: protoc-opentelemetry-proto
           path: |
-            /nginx/build/_deps/grpc-build/third_party/protobuf/protoc
-            /nginx/build/_deps/otelcpp-src/third_party/opentelemetry-proto
+            nginx/build/_deps/grpc-build/third_party/protobuf/protoc
+            nginx/build/_deps/otelcpp-src/third_party/opentelemetry-proto
 #  test-module:
 #    needs: build-module
 #    runs-on: ubuntu-latest
