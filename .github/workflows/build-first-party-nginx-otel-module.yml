@@ -53,21 +53,21 @@ jobs:
       - name: Build module
         working-directory: nginx-otel/build
         run: |
-          cmake -DNGX_OTEL_NGINX_BUILD_DIR=nginx/objs ..
+          cmake -DNGX_OTEL_NGINX_BUILD_DIR=${PWD}/../nginx/objs ..
           make -j 4
           strip ngx_otel_module.so
       - name: Archive module
         uses: actions/upload-artifact@v3
         with:
           name: nginx-otel-module
-          path: nginx/build/ngx_otel_module.so
+          path: nginx-otel/build/ngx_otel_module.so
       - name: Archive protoc and opentelemetry-proto
         uses: actions/upload-artifact@v3
         with:
           name: protoc-opentelemetry-proto
           path: |
-            nginx/build/_deps/grpc-build/third_party/protobuf/protoc
-            nginx/build/_deps/otelcpp-src/third_party/opentelemetry-proto
+            nginx-otel/build/_deps/grpc-build/third_party/protobuf/protoc
+            nginx-otel/build/_deps/otelcpp-src/third_party/opentelemetry-proto
 #  test-module:
 #    needs: build-module
 #    runs-on: ubuntu-latest
