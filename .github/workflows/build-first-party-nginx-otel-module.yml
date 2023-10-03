@@ -1,6 +1,8 @@
 name: build-first-party-nginx-otel-module
 run-name: ${{ github.actor }} is triggering pipeline
-on: [workflow_dispatch]
+on:
+  workflow_dispatch:
+  pull_request:
 env:
   NGINX_VERSION: v1.24
   GRPC_CPP_SHA: a3f10052090539cd3e19aa8e04f3bf8eceae2964
