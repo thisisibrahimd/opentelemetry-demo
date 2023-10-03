@@ -20,7 +20,6 @@ jobs:
           repository: nginxinc/nginx-otel
 #          ref: $NGINX_VERSION
           path: nginx-otel
-          token: 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
       - name: Checkout nginx/nginx repository
         uses: actions/checkout@v3
         with:
@@ -28,7 +27,6 @@ jobs:
 #          ref: $NGINX_VERSION
           ref: 'release-1.24.0'
           path: nginx
-          token: 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
       - name: Install dependencies
         run: |
           sudo apt-get update
