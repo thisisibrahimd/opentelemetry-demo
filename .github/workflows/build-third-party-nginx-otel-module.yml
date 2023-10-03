@@ -103,11 +103,12 @@ jobs:
       - name: Build module
         working-directory: opentelemetry-cpp-contrib/instrumentation/nginx
         run: |
-          mkdir build \
+          mkdir build modules \
           && cd build \
           && cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH=${PWD}/../../../../install \
+            -DCMAKE_INSTALL_PREFIX=${PWD}/../modules \
             -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
             -DWITH_OTLP=ON \
             -DNGINX_VERSION=1.24.0 \
@@ -120,7 +121,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: nginx-otel-module
-          path: opentelemetry-cpp-contrib/instrumentation/nginx/build/otel_ngx_module.so
+          path: opentelemetry-cpp-contrib/instrumentation/nginx/modules/otel_ngx_module.so
 #      - name: Archive protoc and opentelemetry-proto
 #        uses: actions/upload-artifact@v3
 #        with:
