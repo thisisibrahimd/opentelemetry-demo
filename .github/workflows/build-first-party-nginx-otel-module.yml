@@ -20,6 +20,7 @@ jobs:
           repository: nginxinc/nginx-otel
 #          ref: $NGINX_VERSION
           path: nginx-otel
+          token: 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
       - name: Checkout nginx/nginx repository
         uses: actions/checkout@v3
         with:
@@ -27,11 +28,12 @@ jobs:
 #          ref: $NGINX_VERSION
           ref: 'release-1.24.0'
           path: nginx
+          token: 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
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-          build-essential \
+            build-essential \
             ca-certificates \
             cmake \
             curl \
@@ -48,12 +50,13 @@ jobs:
       - name: Configure nginx
         working-directory: nginx
         run: auto/configure --with-compat
-      - name: Create build directory
-        run: mkdir -p nginx-otel/build
       - name: Build module
-        working-directory: nginx-otel/build
+        working-directory: nginx-otel
         run: |
-          cmake -DNGX_OTEL_NGINX_BUILD_DIR=${PWD}/../nginx/objs ..
+          sed -i 's/18dda3c586b2607d8daead6b97922e59d867bb7d # v1.46.6/a3f10052090539cd3e19aa8e04f3bf8eceae2964 # v1.52.0/g' CMakeLists.txt \
+          && sed -i 's/57bf8c2b0e85215a61602f559522d08caa4d2fb8 # v1.8.1/d56a5c702fc2154ef82400df4801cd511ffb63ea # v1.8.2/g' CMakeLists.txt
+          mkdir -p build && cd build
+          cmake -DNGX_OTEL_NGINX_BUILD_DIR=${PWD}/../../nginx/objs ..
           make -j 4
           strip ngx_otel_module.so
       - name: Archive module
@@ -68,47 +71,3 @@ jobs:
           path: |
             nginx-otel/build/_deps/grpc-build/third_party/protobuf/protoc
             nginx-otel/build/_deps/otelcpp-src/third_party/opentelemetry-proto
-#  test-module:
-#    needs: build-module
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout repository
-#        uses: actions/checkout@v3
-#      - name: Download module
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: nginx-otel-module
-#          path: build
-#      - name: Download protoc and opentelemetry-proto
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: protoc-opentelemetry-proto
-#          path: build/_deps
-#      - name: List files
-#        run: ls -laR .
-#      - name: Fix protoc file permissions
-#        run: chmod +x build/_deps/grpc-build/third_party/protobuf/protoc
-#      - name: Install perl modules
-#        run: sudo cpan IO::Socket::SSL Crypt::Misc
-#      - name: Download otelcol
-#        run: |
-#          curl -LO https://github.com/\
-#          open-telemetry/opentelemetry-collector-releases/releases/download/\
-#          v0.76.1/otelcol_0.76.1_linux_amd64.tar.gz
-#          tar -xzf otelcol_0.76.1_linux_amd64.tar.gz
-#      - name: Checkout nginx and nginx-test
-#        run: |
-#          hg clone http://hg.nginx.org/nginx/
-#          hg clone http://hg.nginx.org/nginx-tests/
-#      - name: Build nginx
-#        working-directory: nginx
-#        run: |
-#          auto/configure --with-compat --with-debug --with-http_ssl_module \
-#          --with-http_v2_module --with-http_v3_module
-#          make -j 4
-#      - name: Run tests
-#        working-directory: tests
-#        run: |
-#          PERL5LIB=../nginx-tests/lib TEST_NGINX_UNSAFE=1 \
-#          TEST_NGINX_VERBOSE=1 TEST_NGINX_GLOBALS="load_module \
-#          ${PWD}/../build/ngx_otel_module.so;" prove -v .
