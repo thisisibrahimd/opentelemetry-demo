@@ -24,7 +24,8 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: nginx/nginx
-          ref: $NGINX_VERSION
+#          ref: $NGINX_VERSION
+          ref: 'release-1.24.0'
           path: nginx
       - name: Install dependencies
         run: |
