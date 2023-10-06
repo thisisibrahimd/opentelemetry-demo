@@ -95,6 +95,8 @@ docker compose up --profile first-party-nginx-otel up -d
 docker compose up --profile third-party-nginx-otel up -d
 ```
 
+To see the load test running and its results, go over to [localhost:8089](http://localhost:8089).
+
 ## Contributing
 
 To get involved with the project see our [CONTRIBUTING](CONTRIBUTING.md)

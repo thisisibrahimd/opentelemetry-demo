@@ -14,6 +14,12 @@ receivers:
 
 exporters:
   logging:
+  prometheus:
+    endpoint: "0.0.0.0:9464"
+    enable_open_metrics: true
+    resource_to_telemetry_conversion:
+      enabled: true
+
 
 processors:
   batch:
@@ -45,7 +51,7 @@ service:
     metrics:
       receivers: [otlp, spanmetrics]
       processors: [filter/ottl, transform, batch]
-      exporters: [logging]
+      exporters: [logging, prometheus]
     logs:
       receivers: [otlp]
       processors: [batch]
