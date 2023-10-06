@@ -65,6 +65,36 @@ keeping it up to date for you.
 | [Datadog][Datadog]                      | [Logz.io][Logzio]           | [Tracetest][Tracetest]                                         |
 | [Dynatrace][Dynatrace]                  | [New Relic][NewRelic]       | [Uptrace][Uptrace]                                             |
 
+## Performance
+
+We want to test the performance of different proxies and otel instrumentation. We are testing the following proxies and instrumentation
+
+- Envoy with first party otel instrumentation
+- Nginx with no instrumentation
+- Nginx with first party instrumentation [nginxinc/nginx-otel](https://github.com/nginxinc/nginx-otel)
+- Nginx with third party instrumentation [open-telemetry/opentelemetry-cpp-contrib](https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx)
+
+We are using the loadgenerate service to test the proxies with properties in [.env](.env)
+```dotenv
+...
+LOCUST_USERS=<number-of-users>
+LOCUST_SPAWN_RATE=<number-of-users-added-per-second>
+...
+```
+
+In order to test each proxy locally, you may use [docker profiles](https://docs.docker.com/compose/profiles/).
+
+```shell
+# Envoy
+docker compose up --profile envoy up -d
+# Nginx
+docker compose up --profile nginx up -d
+# Nginx w/ First Party Otel
+docker compose up --profile first-party-nginx-otel up -d
+# Nginx w/ Third Party Otel
+docker compose up --profile third-party-nginx-otel up -d
+```
+
 ## Contributing
 
 To get involved with the project see our [CONTRIBUTING](CONTRIBUTING.md)

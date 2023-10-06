@@ -18,16 +18,21 @@ upstream frontend {
     server ${FRONTEND_HOST}:${FRONTEND_PORT};
 }
 
+upstream opentelemetry_collector_http {
+    server ${OTEL_COLLECTOR_HOST}:${OTEL_COLLECTOR_PORT_HTTP};
+}
+
 server {
-    listen ${THIRD_PARTY_NGINX_OTEL_PORT};
+    listen ${ENVOY_PORT};
 
     location /feature {
         proxy_pass http://featureflag;
-#         rewrite
     }
     location /loadgen {
         proxy_pass http://loadgen;
-#         rewrite
+    }
+    location /otlp-http {
+        proxy_pass http://opentelemetry_collector_http;
     }
     location /jaeger {
         proxy_pass http://jaeger;

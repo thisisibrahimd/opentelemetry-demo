@@ -29,7 +29,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 20M
+          memory: 8G
     restart: unless-stopped
     environment:
       - KAFKA_SERVICE_ADDR
@@ -56,7 +56,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 300M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${AD_SERVICE_PORT}"
@@ -85,7 +85,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 160M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${CART_SERVICE_PORT}"
@@ -115,7 +115,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 20M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${CHECKOUT_SERVICE_PORT}"
@@ -165,7 +165,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 20M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${CURRENCY_SERVICE_PORT}"
@@ -189,7 +189,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 100M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${EMAIL_SERVICE_PORT}"
@@ -216,7 +216,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 175M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${FEATURE_FLAG_SERVICE_PORT}"                                  # Feature Flag Service UI
@@ -247,7 +247,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 200M
+          memory: 8G
     restart: unless-stopped
     environment:
       - KAFKA_SERVICE_ADDR
@@ -274,7 +274,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 200M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT}"
@@ -316,105 +316,19 @@ services:
         condition: service_started
     logging: *logging
 
-  # Frontend Proxy (first-party-nginx-otel)
-  frontendproxy-first-party-nginx-otel:
-    image: ${IMAGE_NAME}:${IMAGE_VERSION}-frontendproxy-first-party-nginx-otel
-    container_name: frontend-proxy-first-party-nginx-otel
-    build:
-      context: ./
-      dockerfile: src/frontendproxy-first-party-nginx-otel/Dockerfile
-    volumes:
-      - ./src/frontendproxy-first-party-nginx-otel/templates:/etc/nginx/templates
-    deploy:
-      resources:
-        limits:
-          memory: 50m
-    ports:
-      - "${FIRST_PARTY_NGINX_OTEL_PORT}:${FIRST_PARTY_NGINX_OTEL_PORT}"
-      - 10001:10001
-    environment:
-      - FRONTEND_PORT
-      - FRONTEND_HOST
-      - FEATURE_FLAG_SERVICE_PORT
-      - FEATURE_FLAG_SERVICE_HOST
-      - LOCUST_WEB_HOST
-      - LOCUST_WEB_PORT
-      - GRAFANA_SERVICE_PORT
-      - GRAFANA_SERVICE_HOST
-      - JAEGER_SERVICE_PORT
-      - JAEGER_SERVICE_HOST
-      - OTEL_COLLECTOR_HOST
-      - OTEL_COLLECTOR_PORT
-      - OTEL_COLLECTOR_PORT_GRPC
-      - FIRST_PARTY_NGINX_OTEL_PORT
-    depends_on:
-      frontend:
-        condition: service_started
-      featureflagservice:
-        condition: service_started
-      loadgenerator:
-        condition: service_started
-      jaeger:
-        condition: service_started
-      grafana:
-        condition: service_started
-
-  # Frontend Proxy (Nginx)
-  frontendproxy-third-party-nginx-otel:
-    image: ${IMAGE_NAME}:${IMAGE_VERSION}-frontendproxy-third-party-nginx-otel
-    container_name: frontend-proxy-third-party-nginx-otel
-    build:
-      context: ./
-      dockerfile: src/frontendproxy-third-party-nginx-otel/Dockerfile
-    volumes:
-      - ./src/frontendproxy-third-party-nginx-otel/templates:/etc/nginx/templates
-      - ./src/frontendproxy-third-party-nginx-otel/otel-nginx.toml:/conf/otel-nginx.toml
-    deploy:
-      resources:
-        limits:
-          memory: 50m
-    ports:
-      - "${THIRD_PARTY_NGINX_OTEL_PORT}:${THIRD_PARTY_NGINX_OTEL_PORT}"
-      - 10002:10002
-    environment:
-      - FRONTEND_PORT
-      - FRONTEND_HOST
-      - FEATURE_FLAG_SERVICE_PORT
-      - FEATURE_FLAG_SERVICE_HOST
-      - LOCUST_WEB_HOST
-      - LOCUST_WEB_PORT
-      - GRAFANA_SERVICE_PORT
-      - GRAFANA_SERVICE_HOST
-      - JAEGER_SERVICE_PORT
-      - JAEGER_SERVICE_HOST
-      - OTEL_COLLECTOR_HOST
-      - OTEL_COLLECTOR_PORT
-      - OTEL_COLLECTOR_PORT_GRPC
-      - OTEL_EXPORTER_OTLP_ENDPOINT
-      - THIRD_PARTY_NGINX_OTEL_PORT
-    depends_on:
-      frontend:
-        condition: service_started
-      featureflagservice:
-        condition: service_started
-      loadgenerator:
-        condition: service_started
-      jaeger:
-        condition: service_started
-      grafana:
-        condition: service_started
-
   # Frontend Proxy (Envoy)
   frontendproxy:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-frontendproxy
     container_name: frontend-proxy
+    profiles:
+      - envoy
     build:
       context: ./
       dockerfile: src/frontendproxy/Dockerfile
     deploy:
       resources:
         limits:
-          memory: 50M
+          memory: 8G
     ports:
       - "${ENVOY_PORT}:${ENVOY_PORT}"
       - 10000:10000
@@ -445,6 +359,143 @@ services:
       grafana:
         condition: service_started
 
+  # Frontend Proxy (nginx)
+  frontendproxy-nginx:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-frontendproxy-nginx
+    container_name: frontend-proxy
+    profiles:
+      - nginx
+    build:
+      context: ./
+      dockerfile: src/frontendproxy-nginx/Dockerfile
+    volumes:
+      - ./src/frontendproxy-nginx/templates:/etc/nginx/templates
+    ports:
+      - "${ENVOY_PORT}:${ENVOY_PORT}"
+      - 10001:10001
+    environment:
+      - FRONTEND_PORT
+      - FRONTEND_HOST
+      - FEATURE_FLAG_SERVICE_PORT
+      - FEATURE_FLAG_SERVICE_HOST
+      - LOCUST_WEB_HOST
+      - LOCUST_WEB_PORT
+      - GRAFANA_SERVICE_PORT
+      - GRAFANA_SERVICE_HOST
+      - JAEGER_SERVICE_PORT
+      - JAEGER_SERVICE_HOST
+      - OTEL_COLLECTOR_HOST
+      - OTEL_COLLECTOR_PORT
+      - OTEL_COLLECTOR_PORT_GRPC
+      - OTEL_COLLECTOR_PORT_HTTP
+      - ENVOY_PORT
+    depends_on:
+      frontend:
+        condition: service_started
+      featureflagservice:
+        condition: service_started
+      loadgenerator:
+        condition: service_started
+      jaeger:
+        condition: service_started
+      grafana:
+        condition: service_started
+
+  # Frontend Proxy (first-party-nginx-otel)
+  frontendproxy-first-party-nginx-otel:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-frontendproxy-first-party-nginx-otel
+    container_name: frontend-proxy
+    profiles:
+      - first-party-nginx-otel
+    build:
+      context: ./
+      dockerfile: src/frontendproxy-first-party-nginx-otel/Dockerfile
+    volumes:
+      - ./src/frontendproxy-first-party-nginx-otel/templates:/etc/nginx/templates
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+    ports:
+      - "${ENVOY_PORT}:${ENVOY_PORT}"
+      - 10002:10002
+    environment:
+      - FRONTEND_PORT
+      - FRONTEND_HOST
+      - FEATURE_FLAG_SERVICE_PORT
+      - FEATURE_FLAG_SERVICE_HOST
+      - LOCUST_WEB_HOST
+      - LOCUST_WEB_PORT
+      - GRAFANA_SERVICE_PORT
+      - GRAFANA_SERVICE_HOST
+      - JAEGER_SERVICE_PORT
+      - JAEGER_SERVICE_HOST
+      - OTEL_COLLECTOR_HOST
+      - OTEL_COLLECTOR_PORT
+      - OTEL_COLLECTOR_PORT_GRPC
+      - OTEL_COLLECTOR_PORT_HTTP
+      - ENVOY_PORT
+    depends_on:
+      frontend:
+        condition: service_started
+      featureflagservice:
+        condition: service_started
+      loadgenerator:
+        condition: service_started
+      jaeger:
+        condition: service_started
+      grafana:
+        condition: service_started
+
+  # Frontend Proxy (third-party-nginx-otel)
+  frontendproxy-third-party-nginx-otel:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-frontendproxy-third-party-nginx-otel
+    container_name: frontend-proxy
+    profiles:
+      - third-party-nginx-otel
+    build:
+      context: ./
+      dockerfile: src/frontendproxy-third-party-nginx-otel/Dockerfile
+    volumes:
+      - ./src/frontendproxy-third-party-nginx-otel/templates:/etc/nginx/templates
+      - ./src/frontendproxy-third-party-nginx-otel/otel-nginx.toml:/conf/otel-nginx.toml
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 8G
+    ports:
+      - "${ENVOY_PORT}:${ENVOY_PORT}"
+      - 10003:10003
+    environment:
+      - FRONTEND_PORT
+      - FRONTEND_HOST
+      - FEATURE_FLAG_SERVICE_PORT
+      - FEATURE_FLAG_SERVICE_HOST
+      - LOCUST_WEB_HOST
+      - LOCUST_WEB_PORT
+      - GRAFANA_SERVICE_PORT
+      - GRAFANA_SERVICE_HOST
+      - JAEGER_SERVICE_PORT
+      - JAEGER_SERVICE_HOST
+      - OTEL_COLLECTOR_HOST
+      - OTEL_COLLECTOR_PORT
+      - OTEL_COLLECTOR_PORT_GRPC
+      - OTEL_COLLECTOR_PORT_HTTP
+      - OTEL_EXPORTER_OTLP_ENDPOINT
+      - ENVOY_PORT
+    depends_on:
+      frontend:
+        condition: service_started
+      featureflagservice:
+        condition: service_started
+      loadgenerator:
+        condition: service_started
+      jaeger:
+        condition: service_started
+      grafana:
+        condition: service_started
+
+
   # Load Generator
   loadgenerator:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-loadgenerator
@@ -457,14 +508,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 120M
+          memory: 8G
     restart: unless-stopped
     ports:
-      - "${LOCUST_WEB_PORT}"
+      - "${LOCUST_WEB_PORT}:${LOCUST_WEB_PORT}"
     environment:
       - LOCUST_WEB_PORT
       - LOCUST_USERS
       - LOCUST_HOST
+      - LOCUST_SPAWN_RATE
       - LOCUST_HEADLESS
       - LOCUST_AUTOSTART
       - OTEL_EXPORTER_OTLP_ENDPOINT
@@ -489,7 +541,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 120M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${PAYMENT_SERVICE_PORT}"
@@ -516,7 +568,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 20M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${PRODUCT_CATALOG_SERVICE_PORT}"
@@ -544,7 +596,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 40M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${QUOTE_SERVICE_PORT}"
@@ -572,7 +624,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 500M               # This is high to enable supporting the recommendationCache feature flag use case
+          memory: 8G               # This is high to enable supporting the recommendationCache feature flag use case
     restart: unless-stopped
     ports:
       - "${RECOMMENDATION_SERVICE_PORT}"
@@ -607,7 +659,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 20M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${SHIPPING_SERVICE_PORT}"
@@ -633,7 +685,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 120M
+          memory: 8G
     restart: unless-stopped
     environment:
       - POSTGRES_USER=ffs
@@ -658,7 +710,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 500M
+          memory: 8G
     restart: unless-stopped
     environment:
       - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
@@ -683,7 +735,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 20M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${REDIS_PORT}"
@@ -707,7 +759,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 300M
+          memory: 8G
     restart: unless-stopped
     ports:
       - "${JAEGER_SERVICE_PORT}"         # Jaeger UI
@@ -724,7 +776,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 100M
+          memory: 8G
     volumes:
       - ./src/grafana/grafana.ini:/etc/grafana/grafana.ini
       - ./src/grafana/provisioning/:/etc/grafana/provisioning/
@@ -739,7 +791,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 125M
+          memory: 8G
     restart: unless-stopped
     command: [ "--config=/etc/otelcol-config.yml", "--config=/etc/otelcol-observability.yml", "--config=/etc/otelcol-config-extras.yml" ]
     volumes:
@@ -773,7 +825,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 300M
+          memory: 8G
     ports:
       - "${PROMETHEUS_SERVICE_PORT}:${PROMETHEUS_SERVICE_PORT}"
     logging: *logging
