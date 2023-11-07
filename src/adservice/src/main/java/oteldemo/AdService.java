@@ -214,6 +214,8 @@ public final class AdService {
         span.setStatus(StatusCode.ERROR);
         logger.log(Level.WARN, "GetAds Failed with status {}", e.getStatus());
         responseObserver.onError(e);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
       }
     }
 
