@@ -68,6 +68,7 @@ services:
       - OTEL_RESOURCE_ATTRIBUTES
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_SERVICE_NAME=adservice
+      - OTEL_INSTRUMENTATION_EXECUTORS_INCLUDE_ALL=true
     depends_on:
       otelcol:
         condition: service_started
