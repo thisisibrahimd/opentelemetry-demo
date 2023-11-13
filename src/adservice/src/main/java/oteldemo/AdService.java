@@ -53,6 +53,12 @@ public final class AdService {
   private static final Tracer tracer = GlobalOpenTelemetry.getTracer("adservice");
   private static final Meter meter = GlobalOpenTelemetry.getMeter("adservice");
 
+  private static RejectedExecutionHandlerImpl rejectionHandler = new RejectedExecutionHandlerImpl();
+  private static ThreadFactory threadFactory = Executors.defaultThreadFactory();
+  private static ThreadPoolExecutor executorPool = new ThreadPoolExecutor(2, 4, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2), threadFactory, rejectionHandler);
+  private static MyMonitorThread monitor = new MyMonitorThread(executorPool, 3);
+  private static Thread monitorThread = new Thread(monitor);
+
   private static final LongCounter adRequestsCounter =
       meter
           .counterBuilder("app.ads.ad_requests")
@@ -173,27 +179,7 @@ public final class AdService {
         span.setAttribute("app.ads.ad_request_type", adRequestType.name());
         span.setAttribute("app.ads.ad_response_type", adResponseType.name());
 
-        //RejectedExecutionHandler implementation
-        RejectedExecutionHandlerImpl rejectionHandler = new RejectedExecutionHandlerImpl();
-        //Get the ThreadFactory implementation to use
-        ThreadFactory threadFactory = Executors.defaultThreadFactory();
-        //creating the ThreadPoolExecutor
-        ThreadPoolExecutor executorPool = new ThreadPoolExecutor(2, 4, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2), threadFactory, rejectionHandler);
-        //start the monitoring thread
-        MyMonitorThread monitor = new MyMonitorThread(executorPool, 3);
-        Thread monitorThread = new Thread(monitor);
-        monitorThread.start();
-        //submit work to the thread pool
-        for(int i=0; i<10; i++){
-            executorPool.execute(new WorkerThread("cmd"+i));
-        }
-
-        Thread.sleep(30000);
-        //shut down the pool
-        executorPool.shutdown();
-        //shut down the monitor thread
-        Thread.sleep(5000);
-        monitor.shutdown();
+        executorPool.execute(new WorkerThread("cmd"+allAds.size()));
 
         adRequestsCounter.add(
             1,
@@ -214,8 +200,6 @@ public final class AdService {
         span.setStatus(StatusCode.ERROR);
         logger.log(Level.WARN, "GetAds Failed with status {}", e.getStatus());
         responseObserver.onError(e);
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
       }
     }
 
@@ -335,7 +319,10 @@ public final class AdService {
     // Start the RPC server. You shouldn't see any output from gRPC before this.
     logger.info("Ad service starting.");
     final AdService service = AdService.getInstance();
+    monitorThread.start();
     service.start();
     service.blockUntilShutdown();
+    executorPool.shutdown();
+    monitor.shutdown();
   }
 }

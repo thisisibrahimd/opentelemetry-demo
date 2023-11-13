@@ -69,6 +69,7 @@ services:
       - OTEL_LOGS_EXPORTER=otlp
       - OTEL_SERVICE_NAME=adservice
       - OTEL_INSTRUMENTATION_EXECUTORS_INCLUDE_ALL=true
+      - OTEL_INSTRUMENTATION_METHODS_INCLUDE=oteldemo.WorkerThread[processCommand];
     depends_on:
       otelcol:
         condition: service_started
@@ -584,8 +585,8 @@ services:
       test: nc -z kafka 9092
       start_period: 10s
       interval: 5s
-      timeout: 10s
-      retries: 10
+      timeout: 30s
+      retries: 20
     logging: *logging
 
   # Redis used by Cart service

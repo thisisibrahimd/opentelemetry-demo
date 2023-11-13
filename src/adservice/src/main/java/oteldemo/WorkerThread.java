@@ -6,6 +6,7 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 
 
 public class WorkerThread implements Runnable {
@@ -18,6 +19,7 @@ public class WorkerThread implements Runnable {
     }
 
     @Override
+    @WithSpan
     public void run() {
         System.out.println(Thread.currentThread().getName()+" Start. Command = "+command);
         processCommand();
@@ -25,7 +27,7 @@ public class WorkerThread implements Runnable {
     }
 
     private void processCommand() {
-        Span span = tracer.spanBuilder("processCommand").startSpan();
+        Span span = tracer.spanBuilder("execute command").startSpan();
 
         // Make the span the current span
         try (Scope scope = span.makeCurrent()) {
